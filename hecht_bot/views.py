@@ -12,6 +12,7 @@ from .api_keys import SLACK_VERIFICATION_TOKEN
 from .api_keys import SLACK_BOT_USER_TOKEN 
 from .utils import handle_weekday_commands
 from .utils import next_weekday
+from .utils import get_username
 
                                  
 Client = SlackClient(SLACK_BOT_USER_TOKEN)                        
@@ -30,12 +31,10 @@ class Events(APIView):
             return Response(data=slack_message,
             status=status.HTTP_200_OK)
 
-
-        if 'event' in slack_message:                              
-            event_message = slack_message.get('event') 
+        if 'event' in slack_message:
+            event_message = slack_message.get('event')
             channel = event_message.get('channel')
-
-            if event_message.get('subtype') == 'bot_message':     
+            if event_message.get('subtype') == 'bot_message':
                 return Response(status=status.HTTP_200_OK)   
 
             user = event_message.get('user')                      
@@ -45,14 +44,14 @@ class Events(APIView):
                 self.user_day_mapping = handle_weekday_commands(user, 0, self.user_day_mapping)
                 next_monday = next_weekday(datetime.date.today(), 0).strftime('%d. %b, %Y')
                 print(self.user_day_mapping)
-                bot_text = 'Hi <@{}>, du hast dich erfolgreich für nächsten Montag eingetragen, den {}'.format(user, next_monday)   
+                bot_text = 'Hi {}, du hast dich erfolgreich für nächsten Montag eingetragen, den {}'.format(get_username(user), next_monday)
                 Client.api_call(method='chat.postMessage',        
                                 channel=channel,                  
                                 text=bot_text)                    
                 return Response(status=status.HTTP_200_OK)
 
             if 'freitag' in text.lower():
-                self.handle_weekday_commands(user, 4, self.user_day_mapping)
+                self.user_day_mapping = handle_weekday_commands(user, 4, self.user_day_mapping)
                 next_friday = next_weekday(datetime.date.today(), 4).strftime('%d. %b, %Y')
                 print(self.user_day_mapping)
                 bot_text = 'Hi <@{}>, du hast dich erfolgreich für nächsten Freitag eingetragen, den {}'.format(user, next_friday)
@@ -62,7 +61,7 @@ class Events(APIView):
                 return Response(status=status.HTTP_200_OK)
 
             if 'samstag' in text.lower():
-                self.handle_weekday_commands(user, 5, self.user_day_mapping)
+                self.user_day_mapping = handle_weekday_commands(user, 5, self.user_day_mapping)
                 next_saturday = next_weekday(datetime.date.today(), 5).strftime('%d. %b, %Y')
                 print(self.user_day_mapping)
                 bot_text = 'Hi <@{}>, du hast dich erfolgreich für nächsten Samstag eingetragen, den {}'.format(user, next_saturday)
