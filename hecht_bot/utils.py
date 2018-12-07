@@ -1,6 +1,9 @@
 import datetime
 import requests
 
+from .models import Helper
+from .models import HelpingEntry
+
 
 def next_weekday(d, weekday):
     days_ahead = weekday - d.weekday()
@@ -19,8 +22,34 @@ def handle_weekday_commands(user, day_code, user_day_mapping):
 
 
 def get_username(user_id):
-    payload = {'token': 'xoxp-420436529250-487822130036-499705203062-ca29e339428a449bd84863ca5ae1211a',
+    payload = {'token': '',
                'user': '{}'.format(user_id)}
     json = requests.get('https://slack.com/api/users.info', params=payload).json()
     return json['user']['name']
 
+
+def try_getting_helping_entry(date):
+    try:
+        helping_entry = HelpingEntry.objects.get(date=date)
+    except HelpingEntry.DoesNotExist:
+        helping_entry = HelpingEntry.objects.create(date=date)
+    return helping_entry
+
+
+def handle_helper_adding(date, user, week_amount=None):
+    try:
+        helper = Helper.objects.get(name=get_username(user))
+    except Helper.DoesNotExist:
+        helper = Helper.objects.create(name=get_username(user))
+    if week_amount:
+        for x in range(0, week_amount):
+            helping_entry = try_getting_helping_entry(date)
+            helping_entry.helper.add(helper)
+            print(helping_entry)
+            helping_entry.save()
+            date += datetime.timedelta(weeks=1)
+    else:
+        helping_entry = try_getting_helping_entry(date)
+        if not helper.helping_entries.filter(date=date).exists():
+            helping_entry.helper.add(helper)
+            helping_entry.save()
